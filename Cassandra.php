@@ -2115,17 +2115,6 @@ class CassandraColumnFamily {
 		$consistency = null,
 		$timestamp = null
 	) {
-		if (is_array($columns) && count($columns) > 1) {
-			throw new Exception(
-				'Removing several columns is not yet supported'
-			);
-		}
-
-		$columnPath = $this->createColumnPath(
-			is_array($columns) && count($columns) == 1 ? $columns[0] : null,
-			$superColumn
-		);
-
 		if ($timestamp === null) {
 			$timestamp = CassandraUtil::getTimestamp();
 		}
@@ -2133,6 +2122,28 @@ class CassandraColumnFamily {
 		if ($consistency === null) {
 			$consistency = $this->defaultWriteConsistency;
 		}
+
+		if (is_array($columns) && count($columns) > 1) {
+			foreach ($columns as $columnName) {
+				$columnPath = $this->createColumnPath(
+										$columnName,
+										$superColumn
+									);
+				$this->cassandra->call(
+									'remove',
+									$key,
+									$columnPath,
+									$timestamp,
+									$consistency
+								);
+			}
+			return;
+		}
+
+		$columnPath = $this->createColumnPath(
+			is_array($columns) && count($columns) == 1 ? $columns[0] : null,
+			$superColumn
+		);
 
 		$this->cassandra->call(
 			'remove',
